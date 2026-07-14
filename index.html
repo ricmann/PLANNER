@@ -240,7 +240,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     </div>
     <div class="sync-bar">
       <span class="sync-dot" id="sync-dot"></span>
-      <span id="sync-status">Connecting…</span>
+      <span id="sync-status">Connecting...</span>
       <button class="data-btn sync" style="margin-left:auto" onclick="syncNow()"><i class="ti ti-refresh" style="font-size:13px"></i> Sync now</button>
     </div>
     <div class="data-bar">
@@ -271,7 +271,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div class="cats-popup-overlay" id="cats-overlay" onclick="closeCatsPopup(event)">
   <div class="cats-popup">
     <div class="cats-popup-header">
-      <span class="cats-popup-title"><i class="ti ti-palette" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i> Manage categories <span style="font-size:11px;color:var(--color-text3);font-weight:400">— click to filter</span></span>
+      <span class="cats-popup-title"><i class="ti ti-palette" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i> Manage categories <span style="font-size:11px;color:var(--color-text3);font-weight:400"> -  click to filter</span></span>
       <button class="cats-popup-close" onclick="closeCatsPopupDirect()">&times;</button>
     </div>
     <div class="cat-tags" id="cat-tags-list"></div>
@@ -296,23 +296,23 @@ function toggleSplit(){splitOpen=!splitOpen;document.getElementById('focus-col')
 function closeFocus(){splitOpen=false;focusPid=null;focusTid=null;document.getElementById('focus-col').classList.remove('open');document.getElementById('split-toggle').classList.remove('active');document.querySelectorAll('.task-item.selected').forEach(el=>el.classList.remove('selected'));}
 function setSyncStatus(s,m){document.getElementById('sync-dot').className='sync-dot '+s;document.getElementById('sync-status').textContent=m;}
 async function pushToSheets(){
-  setSyncStatus('syncing','Saving…');
+  setSyncStatus('syncing','Saving...');
   try{
     await fetch(SHEETS_URL,{method:'POST',body:JSON.stringify([['__STATE__',JSON.stringify(state)]])});
     const now=new Date();
     setSyncStatus('synced','Synced '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}));
     const el=document.getElementById('last-saved');if(el)el.textContent='Saved '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-  }catch(e){setSyncStatus('error','Sync failed — saved locally');}
+  }catch(e){setSyncStatus('error','Sync failed  -  saved locally');}
 }
 async function pullFromSheets(){
-  setSyncStatus('syncing','Loading…');
+  setSyncStatus('syncing','Loading...');
   try{
     const resp=await fetch(SHEETS_URL+'?t='+Date.now());
     const rows=await resp.json();
     const row=rows.find(r=>r[0]==='__STATE__');
     if(row&&row[1]){const r=JSON.parse(row[1]);if(r&&r.panels){state=r;if(!state.catColorIdx)state.catColorIdx=1;saveLocal();render();setSyncStatus('synced','Loaded from Sheets');return true;}}
-    setSyncStatus('synced','No cloud data — pushing local');await pushToSheets();return false;
-  }catch(e){setSyncStatus('error','Offline — using local data');return false;}
+    setSyncStatus('synced','No cloud data  -  pushing local');await pushToSheets();return false;
+  }catch(e){setSyncStatus('error','Offline  -  using local data');return false;}
 }
 function save(){saveLocal();clearTimeout(syncTimer);syncTimer=setTimeout(pushToSheets,2000);}
 function saveLocal(){try{localStorage.setItem('lcvp5',JSON.stringify(state));}catch(e){}}
@@ -363,10 +363,10 @@ function newPage(){
   if(state.panels.length>0){const prev=state.panels[0];const carried=prev.tasks.filter(t=>!t.done).map(t=>({...t,id:state.nextId++,subtasks:(t.subtasks||[]).map(s=>({...s,id:state.nextId++}))}));panel.tasks=carried;n=carried.length;prev.archived=true;prev.collapsed=true;}
   state.panels.unshift(panel);save();
   setTimeout(()=>autoExport(),1500);
-  render();toast('New page — '+n+' tasks carried forward');
+  render();toast('New page  -  '+n+' tasks carried forward');
 }
 function addTask(pid){const inp=document.getElementById('ti-'+pid);const text=cap(inp.value.trim());if(!text)return;const catId=document.getElementById('tc-sel-'+pid)?._catId||state.cats[0]?.id;const panel=state.panels.find(p=>p.id===pid);panel.tasks.unshift({id:state.nextId++,text,catId,done:false,subtasks:[],showSubs:false,notes:''});inp.value='';save();renderTasksOnly(pid);document.getElementById('ti-'+pid)?.focus();}
-function renderTasksOnly(pid){const panel=state.panels.find(p=>p.id===pid);const container=document.getElementById('tl-'+pid);if(!container)return render();const isCollapsed=panelCollapsedAll[pid];container.innerHTML=panel.tasks.length===0?'<div class="empty-state">No tasks yet — type above and press Enter.</div>':panel.tasks.map(t=>renderTask(panel,t)).join('');if(isCollapsed)container.classList.add('collapsed-mode-active');else container.classList.remove('collapsed-mode-active');applyFilter();}
+function renderTasksOnly(pid){const panel=state.panels.find(p=>p.id===pid);const container=document.getElementById('tl-'+pid);if(!container)return render();const isCollapsed=panelCollapsedAll[pid];container.innerHTML=panel.tasks.length===0?'<div class="empty-state">No tasks yet  -  type above and press Enter.</div>':panel.tasks.map(t=>renderTask(panel,t)).join('');if(isCollapsed)container.classList.add('collapsed-mode-active');else container.classList.remove('collapsed-mode-active');applyFilter();}
 function toggleTask(pid,tid){const t=state.panels.find(p=>p.id===pid).tasks.find(t=>t.id===tid);t.done=!t.done;save();renderTasksOnly(pid);if(focusTid===tid)renderFocus();}
 function deleteTask(pid,tid){const p=state.panels.find(p=>p.id===pid);p.tasks=p.tasks.filter(t=>t.id!==tid);if(focusTid===tid){focusPid=null;focusTid=null;renderFocus();}save();renderTasksOnly(pid);}
 function openEditPopup(pid,tid){const popupEl=document.getElementById('ep-'+tid);if(!popupEl)return;if(popupEl.classList.contains('open')){popupEl.classList.remove('open');return;}const t=state.panels.find(p=>p.id===pid).tasks.find(t=>t.id===tid);document.getElementById('ep-name-'+tid).value=t.text;const catsEl=document.getElementById('ep-cats-'+tid);catsEl.innerHTML=state.cats.map(c=>{const cs=catStyle(c.id);return'<span class="task-edit-cat-opt'+(c.id===t.catId?' selected-cat':'')+'" data-catid="'+c.id+'" style="background:'+cs.bg+';color:'+cs.text+';border-color:'+cs.border+'" onclick="selectEditCat(''+tid+'',''+c.id+'')">'+c.name+'</span>';}).join('');popupEl.classList.add('open');document.getElementById('ep-name-'+tid).focus();}
@@ -400,17 +400,17 @@ function renderFocus(){
   const panel=state.panels.find(p=>p.id===focusPid);const task=panel?.tasks.find(t=>t.id===focusTid);
   if(!task){body.innerHTML='<div class="focus-empty">Task not found.</div>';return;}
   const subs=task.subtasks||[];const subDone=subs.filter(s=>s.done).length;const pct=subs.length>0?Math.round(subDone/subs.length*100):0;
-  header.textContent=task.text.length>30?task.text.slice(0,30)+'…':task.text;if(!task.notes)task.notes='';
+  header.textContent=task.text.length>30?task.text.slice(0,30)+'...':task.text;if(!task.notes)task.notes='';
   body.innerHTML='<div><input class="focus-task-name" id="fn-'+task.id+'" value="'+escHtml(task.text)+'" placeholder="Task name" onchange="saveFocusName()"></div>'
     +'<div><div class="focus-cat-label">Category</div><div class="focus-cats">'+state.cats.map(c=>{const s=catStyle(c.id);return'<span class="focus-cat-opt'+(c.id===task.catId?' active':'')+'" style="background:'+s.bg+';color:'+s.text+';border-color:'+s.border+'" onclick="setFocusCat(''+c.id+'')">'+c.name+'</span>';}).join('')+'</div></div>'
     +'<div><div class="focus-subs-header"><span class="focus-subs-title">Subtasks</span><span class="focus-progress">'+subDone+' / '+subs.length+'</span></div>'
     +(subs.length>0?'<div class="focus-progress-bar"><div class="focus-progress-fill" style="width:'+pct+'%"></div></div>':'')
     +'<div class="focus-sub-list">'+subs.map((s,i)=>'<div class="focus-sub-row" draggable="true" ondragstart="dragStart(event,'+i+')" ondragover="dragOver(event,'+i+')" ondrop="dropSub(event,'+i+')" ondragend="dragEnd()"><span class="drag-handle"><i class="ti ti-grip-vertical"></i></span><div class="focus-sub-check'+(s.done?' checked':'')+'" onclick="focusToggleSub('+s.id+')">'+(s.done?'<i class="ti ti-check"></i>':'')+'</div><span class="focus-sub-text'+(s.done?' done':'')+'">'+escHtml(s.text)+'</span><button class="focus-sub-del" onclick="focusDeleteSub('+s.id+')"><i class="ti ti-x"></i></button></div>').join('')+'</div>'
-    +'<div class="focus-add-sub"><input type="text" id="focus-sub-inp" placeholder="Add subtask…" onkeydown="if(event.key==='Enter')focusAddSub()"><button onclick="focusAddSub()"><i class="ti ti-plus"></i> Add</button></div></div>'
+    +'<div class="focus-add-sub"><input type="text" id="focus-sub-inp" placeholder="Add subtask..." onkeydown="if(event.key==='Enter')focusAddSub()"><button onclick="focusAddSub()"><i class="ti ti-plus"></i> Add</button></div></div>'
     +'<div><div class="focus-notes-label">Notes <button class="focus-notes-copy" onclick="copyNotes()"><i class="ti ti-copy" style="font-size:11px"></i> Copy</button></div>'
-    +'<textarea class="focus-notes-area" id="focus-notes" placeholder="Notes, links, text to copy across devices…" onchange="saveFocusNotes()">'+escHtml(task.notes||'')+'</textarea></div>';
+    +'<textarea class="focus-notes-area" id="focus-notes" placeholder="Notes, links, text to copy across devices..." onchange="saveFocusNotes()">'+escHtml(task.notes||'')+'</textarea></div>';
 }
-function saveFocusName(){const inp=document.getElementById('fn-'+focusTid);if(!inp)return;const val=inp.value.trim();if(!val)return;const task=state.panels.find(p=>p.id===focusPid)?.tasks.find(t=>t.id===focusTid);if(task){task.text=cap(val);save();renderTasksOnly(focusPid);document.getElementById('focus-header-title').textContent=val.length>30?val.slice(0,30)+'…':val;}}
+function saveFocusName(){const inp=document.getElementById('fn-'+focusTid);if(!inp)return;const val=inp.value.trim();if(!val)return;const task=state.panels.find(p=>p.id===focusPid)?.tasks.find(t=>t.id===focusTid);if(task){task.text=cap(val);save();renderTasksOnly(focusPid);document.getElementById('focus-header-title').textContent=val.length>30?val.slice(0,30)+'...':val;}}
 function setFocusCat(catId){const task=state.panels.find(p=>p.id===focusPid)?.tasks.find(t=>t.id===focusTid);if(task){task.catId=catId;save();renderTasksOnly(focusPid);renderFocus();}}
 function focusToggleSub(sid){const task=state.panels.find(p=>p.id===focusPid)?.tasks.find(t=>t.id===focusTid);if(!task)return;const s=task.subtasks.find(s=>s.id===sid);if(s)s.done=!s.done;save();renderTasksOnly(focusPid);renderFocus();}
 function focusDeleteSub(sid){const task=state.panels.find(p=>p.id===focusPid)?.tasks.find(t=>t.id===focusTid);if(!task)return;task.subtasks=task.subtasks.filter(s=>s.id!==sid);save();renderTasksOnly(focusPid);renderFocus();}
@@ -427,7 +427,7 @@ function renderTask(panel,task){
   if(!panel.archived){h+='<span class="cat-pill" style="background:'+cs.bg+';color:'+cs.text+';border-color:'+cs.border+'" onclick="clickCatPill(''+task.catId+'',event)">'+cs.name+'</span>'+'<button class="task-edit-btn" onclick="openEditPopup('+panel.id+','+task.id+')" title="Edit"><i class="ti ti-pencil"></i></button>'+'<button class="sub-toggle-btn'+(hasSubs?' has-subs':'')+'" onclick="toggleSubs('+panel.id+','+task.id+')">'+(hasSubs?'Sub '+subDone+'/'+subs.length:'Sub')+'</button>'+'<button class="del-btn" onclick="deleteTask('+panel.id+','+task.id+')"><i class="ti ti-trash"></i></button>';}
   else{h+='<span class="cat-pill" style="background:'+cs.bg+';color:'+cs.text+';border-color:'+cs.border+'">'+cs.name+'</span>';}
   h+='</div>'+'<div class="task-edit-popup" id="ep-'+task.id+'">'+'<input type="text" id="ep-name-'+task.id+'" placeholder="Task name" onkeydown="if(event.key==='Enter')saveEditPopup('+panel.id+','+task.id+')">'+'<div class="task-edit-popup-cats" id="ep-cats-'+task.id+'"></div>'+'<div class="task-edit-popup-actions"><button class="task-edit-cancel" onclick="cancelEditPopup('+task.id+')">Cancel</button><button class="task-edit-save" onclick="saveEditPopup('+panel.id+','+task.id+')">Save</button></div></div>';
-  if(task.showSubs||hasSubs){h+='<div class="subtasks">';subs.forEach(s=>{h+='<div class="subtask-row"><div class="subtask-check'+(s.done?' checked':'')+'" onclick="toggleSub('+panel.id+','+task.id+','+s.id+')">'+(s.done?'<i class="ti ti-check"></i>':'')+'</div><span class="subtask-text'+(s.done?' done':'')+'">'+escHtml(s.text)+'</span>'+(!panel.archived?'<button class="subtask-del" onclick="deleteSub('+panel.id+','+task.id+','+s.id+')"><i class="ti ti-x"></i></button>':'')+'</div>';});if(!panel.archived&&task.showSubs){h+='<div class="add-subtask-row"><input type="text" id="si-'+task.id+'" placeholder="Add subtask…" onkeydown="if(event.key==='Enter')addSubtask('+panel.id+','+task.id+')"><button class="add-subtask-btn" onclick="addSubtask('+panel.id+','+task.id+')"><i class="ti ti-plus"></i> Add</button></div>';}if(hasSubs)h+='<div class="sub-count">'+subDone+' of '+subs.length+' subtasks complete</div>';h+='</div>';}
+  if(task.showSubs||hasSubs){h+='<div class="subtasks">';subs.forEach(s=>{h+='<div class="subtask-row"><div class="subtask-check'+(s.done?' checked':'')+'" onclick="toggleSub('+panel.id+','+task.id+','+s.id+')">'+(s.done?'<i class="ti ti-check"></i>':'')+'</div><span class="subtask-text'+(s.done?' done':'')+'">'+escHtml(s.text)+'</span>'+(!panel.archived?'<button class="subtask-del" onclick="deleteSub('+panel.id+','+task.id+','+s.id+')"><i class="ti ti-x"></i></button>':'')+'</div>';});if(!panel.archived&&task.showSubs){h+='<div class="add-subtask-row"><input type="text" id="si-'+task.id+'" placeholder="Add subtask..." onkeydown="if(event.key==='Enter')addSubtask('+panel.id+','+task.id+')"><button class="add-subtask-btn" onclick="addSubtask('+panel.id+','+task.id+')"><i class="ti ti-plus"></i> Add</button></div>';}if(hasSubs)h+='<div class="sub-count">'+subDone+' of '+subs.length+' subtasks complete</div>';h+='</div>';}
   h+='</div>';return h;
 }
 function render(){
@@ -445,10 +445,10 @@ function render(){
       +'<button class="panel-toggle" onclick="togglePanel('+panel.id+')"><i class="ti ti-chevron-'+(panel.collapsed?'down':'up')+'"></i></button>'
       +'</div>'
       +'<div class="panel-body">'
-      +(active?'<div class="add-task-row"><button class="cat-select-btn" id="tc-sel-'+panel.id+'" style="background:'+fcs.bg+';color:'+fcs.text+';border-color:'+fcs.border+'" onclick="showAddCatPicker('+panel.id+',this)"><i class="ti ti-tag" style="font-size:13px"></i><span>'+fcs.name+'</span></button><input type="text" id="ti-'+panel.id+'" placeholder="Add a task…" onkeydown="if(event.key==='Enter')addTask('+panel.id+')"><button class="add-btn" onclick="addTask('+panel.id+')"><i class="ti ti-plus"></i> Add</button></div>':'')
+      +(active?'<div class="add-task-row"><button class="cat-select-btn" id="tc-sel-'+panel.id+'" style="background:'+fcs.bg+';color:'+fcs.text+';border-color:'+fcs.border+'" onclick="showAddCatPicker('+panel.id+',this)"><i class="ti ti-tag" style="font-size:13px"></i><span>'+fcs.name+'</span></button><input type="text" id="ti-'+panel.id+'" placeholder="Add a task..." onkeydown="if(event.key==='Enter')addTask('+panel.id+')"><button class="add-btn" onclick="addTask('+panel.id+')"><i class="ti ti-plus"></i> Add</button></div>':'')
       +(active&&total>0?'<div class="panel-toolbar"><button class="panel-tool-btn'+(isCollapsed?' collapsed-mode':'')+'" id="collapse-btn-'+panel.id+'" onclick="toggleCollapseAll('+panel.id+')"><i class="ti ti-'+(isCollapsed?'chevrons-down':'chevrons-up')+'"></i> '+(isCollapsed?'Expand all':'Collapse all')+'</button></div>':'')
       +'<div class="tasks-list'+(isCollapsed?' collapsed-mode-active':'')+'" id="tl-'+panel.id+'">'
-      +(panel.tasks.length===0?'<div class="empty-state">No tasks yet'+(active?' — type above and press Enter.':'.')+'</div>':panel.tasks.map(t=>renderTask(panel,t)).join(''))
+      +(panel.tasks.length===0?'<div class="empty-state">No tasks yet'+(active?'  -  type above and press Enter.':'.')+'</div>':panel.tasks.map(t=>renderTask(panel,t)).join(''))
       +'</div>'
       +(active?'<button class="cats-trigger-btn" onclick="openCatsPopup()"><i class="ti ti-palette" style="font-size:13px"></i> Manage categories</button>':'')
       +'</div></div>';
