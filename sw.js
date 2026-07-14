@@ -1,8 +1,9 @@
-const CACHE='planner-v1';
+const CACHE='planner-v3';
 const ASSETS=[
   '/PLANNER/',
   '/PLANNER/index.html',
   '/PLANNER/manifest.json',
+  '/PLANNER/ladybug.png',
   'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css'
 ];
 
@@ -21,7 +22,6 @@ self.addEventListener('activate',e=>{
 });
 
 self.addEventListener('fetch',e=>{
-  // Network first for Google Sheets API, cache first for everything else
   if(e.request.url.includes('script.google.com')){
     e.respondWith(fetch(e.request).catch(()=>new Response('{}',{headers:{'Content-Type':'application/json'}})));
     return;
