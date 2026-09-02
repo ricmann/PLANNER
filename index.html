@@ -153,8 +153,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .sub-subtask-text.done{text-decoration:line-through;color:#9FE1CB}
 .sub-subtask-del{background:none;border:none;cursor:pointer;color:var(--color-text3);font-size:11px;padding:1px;opacity:0.4}
 .sub-subtask-del:hover{opacity:1;color:#A32D2D}
-.add-sub-subtask-row{display:none;gap:4px;margin-top:2px}
-.add-sub-subtask-row.open{display:flex}
+.add-sub-subtask-row{display:flex;gap:4px;margin-top:2px;margin-bottom:4px}
 .add-sub-subtask-row input{flex:1;font-size:11px;padding:3px 6px;border:0.5px solid var(--color-border2);border-radius:var(--radius-md);background:var(--color-surface);color:var(--color-text);min-width:0}
 .add-sub-subtask-btn{font-size:11px;padding:3px 8px;border:none;border-radius:var(--radius-md);background:#5DCAA5;color:#085041;cursor:pointer;font-weight:500;white-space:nowrap}
 .add-sub-subtask-btn:hover{background:#1D9E75;color:#fff}
@@ -942,6 +941,7 @@ function renderFocus() {
   h += '<div><div class="focus-cat-label">Category</div><div class="focus-cats" id="focus-cats-list"></div></div>';
   h += '<div><div class="focus-subs-header"><span class="focus-subs-title">Subtasks</span><span class="focus-progress">' + subDone + ' / ' + subs.length + '</span></div>';
   if (subs.length > 0) h += '<div class="focus-progress-bar"><div class="focus-progress-fill" style="width:' + pct + '%"></div></div>';
+  h += '<div class="focus-add-sub"><input type="text" id="focus-sub-inp" placeholder="Add Sub..." onkeydown="if(event.key===\'Enter\')focusAddSub()"><button onclick="focusAddSub()"><i class="ti ti-plus"></i> Add Sub</button></div>';
   h += '<div class="focus-sub-list" id="focus-sub-list">';
   subs.forEach(function(s, i) {
     var subItems = s.subItems || [];
@@ -955,6 +955,7 @@ function renderFocus() {
     h += '<button class="focus-sub-del" onclick="focusDeleteSub(' + s.id + ')"><i class="ti ti-x"></i></button>';
     h += '</div>';
     if (showSubs || !hasSubs) {
+
       if (hasSubs) {
         h += '<div class="sub-subtasks" style="margin-left:8px">';
         subItems.forEach(function(ss) {
@@ -966,10 +967,7 @@ function renderFocus() {
         });
         h += '</div>';
       }
-      h += '<div class="add-sub-subtask-row' + (s.inputOpen ? ' open' : '') + '" id="fssrow-' + s.id + '" style="margin-left:8px">';
-      h += '<input type="text" id="fssi-' + s.id + '" placeholder="Add Item..." onkeydown="if(event.key===\'Enter\')focusAddSubSubtask(' + s.id + ')">';
-      h += '<button class="add-sub-subtask-btn" onclick="focusAddSubSubtask(' + s.id + ')">+ Add Item</button>';
-      h += '</div>';
+
     }
   });
   h += '</div>';
@@ -1148,6 +1146,12 @@ function renderTask(panel, task) {
 
   if (task.showSubs || hasSubs) {
     h += '<div class="subtasks">';
+    if (!panel.archived && task.showSubs) {
+      h += '<div class="add-subtask-row">';
+      h += '<input type="text" id="si-' + task.id + '" placeholder="Add Sub..." onkeydown="if(event.key===\'Enter\')addSubtask(' + panel.id + ',' + task.id + ')">';
+      h += '<button class="add-subtask-btn" onclick="addSubtask(' + panel.id + ',' + task.id + ')"><i class="ti ti-plus"></i> Add Sub</button>';
+      h += '</div>';
+    }
     subs.forEach(function(s) {
       var subItems = s.subItems || [];
       var subsDone = subItems.filter(function(ss) { return ss.done; }).length;
@@ -1162,6 +1166,12 @@ function renderTask(panel, task) {
       }
       h += '</div>';
       if (!panel.archived && (showSubs || !hasSubs)) {
+        if (showSubs || !hasSubs) {
+          h += '<div class="add-sub-subtask-row' + (s.inputOpen ? ' open' : '') + '" id="ssrow-' + s.id + '">';
+          h += '<input type="text" id="ssi-' + s.id + '" placeholder="Add Item..." onkeydown="if(event.key===\'Enter\')addSubSubtask(' + panel.id + ',' + task.id + ',' + s.id + ')">';
+          h += '<button class="add-sub-subtask-btn" onclick="addSubSubtask(' + panel.id + ',' + task.id + ',' + s.id + ')">+ Add Item</button>';
+          h += '</div>';
+        }
         if (hasSubs) {
           h += '<div class="sub-subtasks">';
           subItems.forEach(function(ss) {
@@ -1173,18 +1183,9 @@ function renderTask(panel, task) {
           });
           h += '</div>';
         }
-        h += '<div class="add-sub-subtask-row' + (s.inputOpen ? ' open' : '') + '" id="ssrow-' + s.id + '">';
-        h += '<input type="text" id="ssi-' + s.id + '" placeholder="Add Item..." onkeydown="if(event.key===\'Enter\')addSubSubtask(' + panel.id + ',' + task.id + ',' + s.id + ')">';
-        h += '<button class="add-sub-subtask-btn" onclick="addSubSubtask(' + panel.id + ',' + task.id + ',' + s.id + ')">+ Add Item</button>';
-        h += '</div>';
+
       }
     });
-    if (!panel.archived && task.showSubs) {
-      h += '<div class="add-subtask-row">';
-      h += '<input type="text" id="si-' + task.id + '" placeholder="Add Sub..." onkeydown="if(event.key===\'Enter\')addSubtask(' + panel.id + ',' + task.id + ')">';
-      h += '<button class="add-subtask-btn" onclick="addSubtask(' + panel.id + ',' + task.id + ')"><i class="ti ti-plus"></i> Add</button>';
-      h += '</div>';
-    }
     if (hasSubs) h += '<div class="sub-count">' + subDone + ' of ' + subs.length + ' subtasks complete</div>';
     h += '</div>';
   }
@@ -1257,7 +1258,6 @@ render();
 pullFromSheets().then(function(loaded) {
   if (!loaded && state.panels.length === 0) newPage();
   if (state.panels.some(function(p) { return p.tasks.length > 0; })) setTimeout(function() { autoExport(); }, 2000);
-});
-</script>
+});</script>
 </body>
 </html>
