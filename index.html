@@ -506,7 +506,9 @@ function newPage() {
   if (state.panels.length > 0) {
     var prev = state.panels[0];
     var carried = prev.tasks.filter(function(t) { return !t.done; }).map(function(t) {
-      return Object.assign({}, t, {id: state.nextId++, subtasks: (t.subtasks || []).map(function(s) { return Object.assign({}, s, {id: state.nextId++}); })});
+      return Object.assign({}, t, {id: state.nextId++, subtasks: (t.subtasks || []).map(function(s) {
+        return Object.assign({}, s, {id: state.nextId++, subItems: (s.subItems || []).map(function(ss) { return Object.assign({}, ss, {id: state.nextId++}); })});
+      })});
     });
     panel.tasks = carried; n = carried.length; prev.archived = true; prev.collapsed = true;
   }
@@ -679,11 +681,9 @@ function addSubSubtask(pid, tid, sid) {
   if (!s.subItems) s.subItems = [];
   s.subItems.push({id: state.nextId++, text: text, done: false});
   s.showSubs = true;
+  s.inputOpen = true;
   inp.value = ''; save(); renderTasksOnly(pid);
   if (focusTid === tid) renderFocus();
-  // Re-open the input row after render
-  var row = document.getElementById('ssrow-' + sid);
-  if (row) row.classList.add('open');
   var inp2 = document.getElementById('ssi-' + sid); if (inp2) inp2.focus();
 }
 
@@ -756,11 +756,9 @@ function focusAddSubSubtask(sid) {
   if (!s.subItems) s.subItems = [];
   s.subItems.push({id: state.nextId++, text: text, done: false});
   s.showSubs = true;
+  s.inputOpen = true;
   inp.value = ''; save(); renderTasksOnly(focusPid); renderFocus();
-  // Re-open the input row after render
   setTimeout(function() {
-    var row = document.getElementById('fssrow-' + sid);
-    if (row) row.classList.add('open');
     var i = document.getElementById('fssi-' + sid); if (i) i.focus();
   }, 50);
 }
@@ -968,7 +966,7 @@ function renderFocus() {
         });
         h += '</div>';
       }
-      h += '<div class="add-sub-subtask-row" id="fssrow-' + s.id + '" style="margin-left:8px">';
+      h += '<div class="add-sub-subtask-row' + (s.inputOpen ? ' open' : '') + '" id="fssrow-' + s.id + '" style="margin-left:8px">';
       h += '<input type="text" id="fssi-' + s.id + '" placeholder="Add sub-subtask..." onkeydown="if(event.key===\'Enter\')focusAddSubSubtask(' + s.id + ')">';
       h += '<button class="add-sub-subtask-btn" onclick="focusAddSubSubtask(' + s.id + ')">+ Sub</button>';
       h += '</div>';
@@ -1042,28 +1040,32 @@ function saveFocusNotes() {
   if (task) { task.notes = el.value; save(); }
 }
 
-function toggleAddSubInput(sid) {
-  var row = document.getElementById('ssrow-' + sid);
-  if (!row) return;
-  if (row.classList.contains('open')) {
-    row.classList.remove('open');
-  } else {
-    row.classList.add('open');
-    var inp = document.getElementById('ssi-' + sid);
-    if (inp) inp.focus();
-  }
+function toggleAddSubInput(pid, tid, sid) {
+  var panel = state.panels.find(function(p) { return p.id === pid; });
+  if (!panel) return;
+  var t = panel.tasks.find(function(t) { return t.id === tid; });
+  if (!t) return;
+  var s = t.subtasks.find(function(s) { return s.id === sid; });
+  if (!s) return;
+  s.inputOpen = !s.inputOpen;
+  save(); renderTasksOnly(pid);
+  if (focusTid === tid) renderFocus();
+  var inp = document.getElementById('ssi-' + sid);
+  if (inp && s.inputOpen) inp.focus();
 }
 
 function focusToggleAddSubInput(sid) {
-  var row = document.getElementById('fssrow-' + sid);
-  if (!row) return;
-  if (row.classList.contains('open')) {
-    row.classList.remove('open');
-  } else {
-    row.classList.add('open');
+  var panel = state.panels.find(function(p) { return p.id === focusPid; });
+  var task = panel ? panel.tasks.find(function(t) { return t.id === focusTid; }) : null;
+  if (!task) return;
+  var s = task.subtasks.find(function(s) { return s.id === sid; });
+  if (!s) return;
+  s.inputOpen = !s.inputOpen;
+  save(); renderTasksOnly(focusPid); renderFocus();
+  setTimeout(function() {
     var inp = document.getElementById('fssi-' + sid);
-    if (inp) inp.focus();
-  }
+    if (inp && s.inputOpen) inp.focus();
+  }, 50);
 }
 
 function focusToggleSubSubtasksVisibility(sid) {
@@ -1155,7 +1157,7 @@ function renderTask(panel, task) {
       h += '<div class="subtask-check' + (s.done ? ' checked' : '') + '" onclick="toggleSub(' + panel.id + ',' + task.id + ',' + s.id + ')">' + (s.done ? '<i class="ti ti-check"></i>' : '') + '</div>';
       h += '<span class="subtask-text subtask-text-editable' + (s.done ? ' done' : '') + '" id="stext-' + s.id + '" onclick="editSubtask(' + panel.id + ',' + task.id + ',' + s.id + ')" title="Click to edit">' + escHtml(s.text) + '</span>';
       if (!panel.archived) {
-        h += '<button class="sub-subtask-toggle" onclick="' + (hasSubs ? 'toggleSubSubtasks(' + panel.id + ',' + task.id + ',' + s.id + ')' : 'toggleAddSubInput(' + s.id + ')') + '">' + (hasSubs ? (showSubs ? 'Hide sub' : 'Show ' + subItems.length) : '+ Sub') + '</button>';
+        h += '<button class="sub-subtask-toggle" onclick="' + (hasSubs ? 'toggleSubSubtasks(' + panel.id + ',' + task.id + ',' + s.id + ')' : 'toggleAddSubInput(' + panel.id + ',' + task.id + ',' + s.id + ')') + '">' + (hasSubs ? (showSubs ? 'Hide sub' : 'Show ' + subItems.length) : '+ Sub') + '</button>';
         h += '<button class="subtask-del" onclick="deleteSub(' + panel.id + ',' + task.id + ',' + s.id + ')"><i class="ti ti-x"></i></button>';
       }
       h += '</div>';
@@ -1171,7 +1173,7 @@ function renderTask(panel, task) {
           });
           h += '</div>';
         }
-        h += '<div class="add-sub-subtask-row" id="ssrow-' + s.id + '">';
+        h += '<div class="add-sub-subtask-row' + (s.inputOpen ? ' open' : '') + '" id="ssrow-' + s.id + '">';
         h += '<input type="text" id="ssi-' + s.id + '" placeholder="Add sub-subtask..." onkeydown="if(event.key===\'Enter\')addSubSubtask(' + panel.id + ',' + task.id + ',' + s.id + ')">';
         h += '<button class="add-sub-subtask-btn" onclick="addSubSubtask(' + panel.id + ',' + task.id + ',' + s.id + ')">+ Sub</button>';
         h += '</div>';
