@@ -135,12 +135,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .subtask-text{flex:1;font-size:13px;color:var(--color-text2);word-break:break-word}
 .subtask-text.done{text-decoration:line-through;color:#9FE1CB}
 .subtask-del{background:none;border:none;cursor:pointer;color:var(--color-text3);font-size:13px;padding:1px;opacity:0.5}
+.subtask-text-editable{cursor:pointer;border-radius:3px;padding:1px 3px}
+.subtask-text-editable:hover{background:rgba(24,95,165,0.08)}
+.subtask-edit-input{flex:1;font-size:13px;padding:2px 6px;border:0.5px solid var(--color-accent);border-radius:var(--radius-md);background:var(--color-surface);color:var(--color-text);outline:none;min-width:0}
 .subtask-del:hover{opacity:1;color:#A32D2D}
 .add-subtask-row{display:flex;gap:5px;margin-top:6px}
 .add-subtask-row input{flex:1;font-size:12px;padding:4px 8px;border:0.5px solid var(--color-border2);border-radius:var(--radius-md);background:var(--color-surface);color:var(--color-text);min-width:0}
 .add-subtask-btn{font-size:12px;padding:4px 10px;border:none;border-radius:var(--radius-md);background:#5DCAA5;color:#085041;cursor:pointer;font-weight:500;white-space:nowrap}
 .add-subtask-btn:hover{background:#1D9E75;color:#fff}
 .sub-count{font-size:11px;color:var(--color-text3);margin-top:3px}
+.sub-subtasks{padding:4px 0 4px 22px;display:flex;flex-direction:column;gap:3px;border-top:0.5px dashed var(--color-border)}
+.sub-subtask-row{display:flex;align-items:center;gap:6px;padding:4px 6px;background:var(--color-bg);border-radius:var(--radius-md);border:0.5px solid var(--color-border)}
+.sub-subtask-check{width:12px;height:12px;border-radius:2px;border:1.5px solid var(--color-border2);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:8px;background:var(--color-surface)}
+.sub-subtask-check.checked{background:#5DCAA5;border-color:#5DCAA5;color:#fff}
+.sub-subtask-text{flex:1;font-size:12px;color:var(--color-text3);word-break:break-word;cursor:pointer;border-radius:3px;padding:1px 3px}
+.sub-subtask-text:hover{background:rgba(24,95,165,0.08)}
+.sub-subtask-text.done{text-decoration:line-through;color:#9FE1CB}
+.sub-subtask-del{background:none;border:none;cursor:pointer;color:var(--color-text3);font-size:11px;padding:1px;opacity:0.4}
+.sub-subtask-del:hover{opacity:1;color:#A32D2D}
+.add-sub-subtask-row{display:flex;gap:4px;margin-top:4px}
+.add-sub-subtask-row input{flex:1;font-size:11px;padding:3px 6px;border:0.5px solid var(--color-border2);border-radius:var(--radius-md);background:var(--color-surface);color:var(--color-text);min-width:0}
+.add-sub-subtask-btn{font-size:11px;padding:3px 8px;border:none;border-radius:var(--radius-md);background:#5DCAA5;color:#085041;cursor:pointer;font-weight:500;white-space:nowrap}
+.add-sub-subtask-btn:hover{background:#1D9E75;color:#fff}
+.sub-subtask-toggle{font-size:10px;padding:2px 6px;border:0.5px solid var(--color-border2);border-radius:var(--radius-md);background:var(--color-bg2);color:var(--color-text3);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.sub-subtask-toggle:hover{background:var(--color-bg3)}
+.subtask-edit-input{flex:1;font-size:13px;padding:2px 6px;border:0.5px solid var(--color-accent);border-radius:var(--radius-md);background:var(--color-surface);color:var(--color-text);outline:none;min-width:0}
+.sub-subtask-edit-input{flex:1;font-size:12px;padding:2px 5px;border:0.5px solid var(--color-accent);border-radius:var(--radius-md);background:var(--color-surface);color:var(--color-text);outline:none;min-width:0}
 .cat-picker-overlay{position:fixed;z-index:1000;background:var(--color-surface);border:0.5px solid var(--color-border2);border-radius:var(--radius-md);padding:6px;display:flex;flex-direction:column;gap:3px;box-shadow:0 4px 20px rgba(24,95,165,0.18);min-width:160px}
 .cat-picker-option{display:flex;align-items:center;gap:7px;padding:6px 10px;border-radius:var(--radius-md);cursor:pointer;font-size:13px;font-weight:500;color:var(--color-text)}
 .cat-picker-option:hover{background:var(--color-bg2)}
@@ -594,6 +614,170 @@ function deleteSub(pid, tid, sid) {
   save(); renderTasksOnly(pid); if (focusTid === tid) renderFocus();
 }
 
+function editSubtask(pid, tid, sid) {
+  var span = document.getElementById('stext-' + sid);
+  if (!span) return;
+  var t = state.panels.find(function(p) { return p.id === pid; }).tasks.find(function(t) { return t.id === tid; });
+  var s = t.subtasks.find(function(s) { return s.id === sid; });
+  if (!s) return;
+  var inp = document.createElement('input');
+  inp.className = 'subtask-edit-input';
+  inp.value = s.text;
+  inp.onblur = function() {
+    var val = inp.value.trim();
+    if (val) s.text = cap(val);
+    save(); renderTasksOnly(pid);
+    if (focusTid === tid) renderFocus();
+  };
+  inp.onkeydown = function(e) {
+    if (e.key === 'Enter') inp.blur();
+    if (e.key === 'Escape') { inp.value = s.text; inp.blur(); }
+  };
+  span.replaceWith(inp); inp.focus(); inp.select();
+}
+
+function editFocusSub(sid) {
+  var span = document.getElementById('fstext-' + sid);
+  if (!span) return;
+  var panel = state.panels.find(function(p) { return p.id === focusPid; });
+  var task = panel ? panel.tasks.find(function(t) { return t.id === focusTid; }) : null;
+  if (!task) return;
+  var s = task.subtasks.find(function(s) { return s.id === sid; });
+  if (!s) return;
+  var inp = document.createElement('input');
+  inp.className = 'subtask-edit-input';
+  inp.value = s.text;
+  inp.onblur = function() {
+    var val = inp.value.trim();
+    if (val) s.text = cap(val);
+    save(); renderTasksOnly(focusPid); renderFocus();
+  };
+  inp.onkeydown = function(e) {
+    if (e.key === 'Enter') inp.blur();
+    if (e.key === 'Escape') { inp.value = s.text; inp.blur(); }
+  };
+  span.replaceWith(inp); inp.focus(); inp.select();
+}
+
+function toggleSubSubtasks(pid, tid, sid) {
+  var t = state.panels.find(function(p) { return p.id === pid; }).tasks.find(function(t) { return t.id === tid; });
+  var s = t.subtasks.find(function(s) { return s.id === sid; });
+  if (!s) return;
+  if (!s.subItems) s.subItems = [];
+  s.showSubs = !s.showSubs;
+  save(); renderTasksOnly(pid);
+  if (focusTid === tid) renderFocus();
+}
+
+function addSubSubtask(pid, tid, sid) {
+  var inp = document.getElementById('ssi-' + sid);
+  var text = cap(inp.value.trim()); if (!text) return;
+  var t = state.panels.find(function(p) { return p.id === pid; }).tasks.find(function(t) { return t.id === tid; });
+  var s = t.subtasks.find(function(s) { return s.id === sid; });
+  if (!s) return;
+  if (!s.subItems) s.subItems = [];
+  s.subItems.push({id: state.nextId++, text: text, done: false});
+  inp.value = ''; save(); renderTasksOnly(pid);
+  if (focusTid === tid) renderFocus();
+  var inp2 = document.getElementById('ssi-' + sid); if (inp2) inp2.focus();
+}
+
+function toggleSubSubtask(pid, tid, sid, ssid) {
+  var t = state.panels.find(function(p) { return p.id === pid; }).tasks.find(function(t) { return t.id === tid; });
+  var s = t.subtasks.find(function(s) { return s.id === sid; });
+  var ss = s.subItems.find(function(ss) { return ss.id === ssid; });
+  if (ss) ss.done = !ss.done;
+  save(); renderTasksOnly(pid);
+  if (focusTid === tid) renderFocus();
+}
+
+function deleteSubSubtask(pid, tid, sid, ssid) {
+  var t = state.panels.find(function(p) { return p.id === pid; }).tasks.find(function(t) { return t.id === tid; });
+  var s = t.subtasks.find(function(s) { return s.id === sid; });
+  s.subItems = s.subItems.filter(function(ss) { return ss.id !== ssid; });
+  save(); renderTasksOnly(pid);
+  if (focusTid === tid) renderFocus();
+}
+
+function editSubSubtask(pid, tid, sid, ssid) {
+  var span = document.getElementById('sstext-' + ssid);
+  if (!span) return;
+  var t = state.panels.find(function(p) { return p.id === pid; }).tasks.find(function(t) { return t.id === tid; });
+  var s = t.subtasks.find(function(s) { return s.id === sid; });
+  var ss = s.subItems.find(function(ss) { return ss.id === ssid; });
+  if (!ss) return;
+  var inp = document.createElement('input');
+  inp.className = 'sub-subtask-edit-input';
+  inp.value = ss.text;
+  inp.onblur = function() {
+    var val = inp.value.trim();
+    if (val) ss.text = cap(val);
+    save(); renderTasksOnly(pid);
+    if (focusTid === tid) renderFocus();
+  };
+  inp.onkeydown = function(e) {
+    if (e.key === 'Enter') inp.blur();
+    if (e.key === 'Escape') { inp.value = ss.text; inp.blur(); }
+  };
+  span.replaceWith(inp); inp.focus(); inp.select();
+}
+
+function focusToggleSubSubtask(sid, ssid) {
+  var panel = state.panels.find(function(p) { return p.id === focusPid; });
+  var task = panel ? panel.tasks.find(function(t) { return t.id === focusTid; }) : null;
+  if (!task) return;
+  var s = task.subtasks.find(function(s) { return s.id === sid; });
+  var ss = s.subItems.find(function(ss) { return ss.id === ssid; });
+  if (ss) ss.done = !ss.done;
+  save(); renderTasksOnly(focusPid); renderFocus();
+}
+
+function focusDeleteSubSubtask(sid, ssid) {
+  var panel = state.panels.find(function(p) { return p.id === focusPid; });
+  var task = panel ? panel.tasks.find(function(t) { return t.id === focusTid; }) : null;
+  if (!task) return;
+  var s = task.subtasks.find(function(s) { return s.id === sid; });
+  s.subItems = s.subItems.filter(function(ss) { return ss.id !== ssid; });
+  save(); renderTasksOnly(focusPid); renderFocus();
+}
+
+function focusAddSubSubtask(sid) {
+  var inp = document.getElementById('fssi-' + sid);
+  var text = cap(inp.value.trim()); if (!text) return;
+  var panel = state.panels.find(function(p) { return p.id === focusPid; });
+  var task = panel ? panel.tasks.find(function(t) { return t.id === focusTid; }) : null;
+  if (!task) return;
+  var s = task.subtasks.find(function(s) { return s.id === sid; });
+  if (!s.subItems) s.subItems = [];
+  s.subItems.push({id: state.nextId++, text: text, done: false});
+  inp.value = ''; save(); renderTasksOnly(focusPid); renderFocus();
+  setTimeout(function() { var i = document.getElementById('fssi-' + sid); if (i) i.focus(); }, 50);
+}
+
+function focusEditSubSubtask(sid, ssid) {
+  var span = document.getElementById('fsstext-' + ssid);
+  if (!span) return;
+  var panel = state.panels.find(function(p) { return p.id === focusPid; });
+  var task = panel ? panel.tasks.find(function(t) { return t.id === focusTid; }) : null;
+  if (!task) return;
+  var s = task.subtasks.find(function(s) { return s.id === sid; });
+  var ss = s.subItems.find(function(ss) { return ss.id === ssid; });
+  if (!ss) return;
+  var inp = document.createElement('input');
+  inp.className = 'sub-subtask-edit-input';
+  inp.value = ss.text;
+  inp.onblur = function() {
+    var val = inp.value.trim();
+    if (val) ss.text = cap(val);
+    save(); renderTasksOnly(focusPid); renderFocus();
+  };
+  inp.onkeydown = function(e) {
+    if (e.key === 'Enter') inp.blur();
+    if (e.key === 'Escape') { inp.value = ss.text; inp.blur(); }
+  };
+  span.replaceWith(inp); inp.focus(); inp.select();
+}
+
 function togglePanel(pid) {
   var p = state.panels.find(function(p) { return p.id === pid; });
   p.collapsed = !p.collapsed; save(); render();
@@ -751,12 +935,33 @@ function renderFocus() {
   if (subs.length > 0) h += '<div class="focus-progress-bar"><div class="focus-progress-fill" style="width:' + pct + '%"></div></div>';
   h += '<div class="focus-sub-list" id="focus-sub-list">';
   subs.forEach(function(s, i) {
+    var subItems = s.subItems || [];
+    var hasSubs = subItems.length > 0;
+    var showSubs = s.showSubs !== false;
     h += '<div class="focus-sub-row" draggable="true" ondragstart="dragStart(event,' + i + ')" ondragover="dragOver(event,' + i + ')" ondrop="dropSub(event,' + i + ')" ondragend="dragEnd()">';
     h += '<span class="drag-handle"><i class="ti ti-grip-vertical"></i></span>';
     h += '<div class="focus-sub-check' + (s.done ? ' checked' : '') + '" onclick="focusToggleSub(' + s.id + ')">' + (s.done ? '<i class="ti ti-check"></i>' : '') + '</div>';
-    h += '<span class="focus-sub-text' + (s.done ? ' done' : '') + '">' + escHtml(s.text) + '</span>';
+    h += '<span class="focus-sub-text subtask-text-editable' + (s.done ? ' done' : '') + '" id="fstext-' + s.id + '" onclick="editFocusSub(' + s.id + ')" title="Click to edit">' + escHtml(s.text) + '</span>';
+    if (hasSubs) h += '<button class="sub-subtask-toggle" onclick="focusToggleSubSubtasksVisibility(' + s.id + ')">' + (showSubs ? 'Hide' : 'Show ' + subItems.length) + '</button>';
     h += '<button class="focus-sub-del" onclick="focusDeleteSub(' + s.id + ')"><i class="ti ti-x"></i></button>';
     h += '</div>';
+    if (showSubs || !hasSubs) {
+      if (hasSubs) {
+        h += '<div class="sub-subtasks" style="margin-left:8px">';
+        subItems.forEach(function(ss) {
+          h += '<div class="sub-subtask-row">';
+          h += '<div class="sub-subtask-check' + (ss.done ? ' checked' : '') + '" onclick="focusToggleSubSubtask(' + s.id + ',' + ss.id + ')">' + (ss.done ? '<i class="ti ti-check"></i>' : '') + '</div>';
+          h += '<span class="sub-subtask-text' + (ss.done ? ' done' : '') + '" id="fsstext-' + ss.id + '" onclick="focusEditSubSubtask(' + s.id + ',' + ss.id + ')" title="Click to edit">' + escHtml(ss.text) + '</span>';
+          h += '<button class="sub-subtask-del" onclick="focusDeleteSubSubtask(' + s.id + ',' + ss.id + ')"><i class="ti ti-x"></i></button>';
+          h += '</div>';
+        });
+        h += '</div>';
+      }
+      h += '<div class="add-sub-subtask-row" style="margin-left:8px">';
+      h += '<input type="text" id="fssi-' + s.id + '" placeholder="Add sub-subtask..." onkeydown="if(event.key===\'Enter\')focusAddSubSubtask(' + s.id + ')">';
+      h += '<button class="add-sub-subtask-btn" onclick="focusAddSubSubtask(' + s.id + ')">+ Sub</button>';
+      h += '</div>';
+    }
   });
   h += '</div>';
   h += '<div class="focus-add-sub"><input type="text" id="focus-sub-inp" placeholder="Add subtask..." onkeydown="if(event.key===\'Enter\')focusAddSub()"><button onclick="focusAddSub()"><i class="ti ti-plus"></i> Add</button></div></div>';
@@ -824,6 +1029,16 @@ function saveFocusNotes() {
   var panel = state.panels.find(function(p) { return p.id === focusPid; });
   var task = panel ? panel.tasks.find(function(t) { return t.id === focusTid; }) : null;
   if (task) { task.notes = el.value; save(); }
+}
+
+function focusToggleSubSubtasksVisibility(sid) {
+  var panel = state.panels.find(function(p) { return p.id === focusPid; });
+  var task = panel ? panel.tasks.find(function(t) { return t.id === focusTid; }) : null;
+  if (!task) return;
+  var s = task.subtasks.find(function(s) { return s.id === sid; });
+  if (!s) return;
+  s.showSubs = !s.showSubs;
+  save(); renderTasksOnly(focusPid); renderFocus();
 }
 
 function copyNotes() {
@@ -897,11 +1112,35 @@ function renderTask(panel, task) {
   if (task.showSubs || hasSubs) {
     h += '<div class="subtasks">';
     subs.forEach(function(s) {
+      var subItems = s.subItems || [];
+      var subsDone = subItems.filter(function(ss) { return ss.done; }).length;
+      var hasSubs = subItems.length > 0;
+      var showSubs = s.showSubs !== false;
       h += '<div class="subtask-row">';
       h += '<div class="subtask-check' + (s.done ? ' checked' : '') + '" onclick="toggleSub(' + panel.id + ',' + task.id + ',' + s.id + ')">' + (s.done ? '<i class="ti ti-check"></i>' : '') + '</div>';
-      h += '<span class="subtask-text' + (s.done ? ' done' : '') + '">' + escHtml(s.text) + '</span>';
-      if (!panel.archived) h += '<button class="subtask-del" onclick="deleteSub(' + panel.id + ',' + task.id + ',' + s.id + ')"><i class="ti ti-x"></i></button>';
+      h += '<span class="subtask-text subtask-text-editable' + (s.done ? ' done' : '') + '" id="stext-' + s.id + '" onclick="editSubtask(' + panel.id + ',' + task.id + ',' + s.id + ')" title="Click to edit">' + escHtml(s.text) + '</span>';
+      if (!panel.archived) {
+        if (hasSubs) h += '<button class="sub-subtask-toggle" onclick="toggleSubSubtasks(' + panel.id + ',' + task.id + ',' + s.id + ')">' + (showSubs ? 'Hide' : 'Show ' + subItems.length) + '</button>';
+        h += '<button class="subtask-del" onclick="deleteSub(' + panel.id + ',' + task.id + ',' + s.id + ')"><i class="ti ti-x"></i></button>';
+      }
       h += '</div>';
+      if (!panel.archived && (showSubs || !hasSubs)) {
+        if (hasSubs) {
+          h += '<div class="sub-subtasks">';
+          subItems.forEach(function(ss) {
+            h += '<div class="sub-subtask-row">';
+            h += '<div class="sub-subtask-check' + (ss.done ? ' checked' : '') + '" onclick="toggleSubSubtask(' + panel.id + ',' + task.id + ',' + s.id + ',' + ss.id + ')">' + (ss.done ? '<i class="ti ti-check"></i>' : '') + '</div>';
+            h += '<span class="sub-subtask-text' + (ss.done ? ' done' : '') + '" id="sstext-' + ss.id + '" onclick="editSubSubtask(' + panel.id + ',' + task.id + ',' + s.id + ',' + ss.id + ')" title="Click to edit">' + escHtml(ss.text) + '</span>';
+            h += '<button class="sub-subtask-del" onclick="deleteSubSubtask(' + panel.id + ',' + task.id + ',' + s.id + ',' + ss.id + ')"><i class="ti ti-x"></i></button>';
+            h += '</div>';
+          });
+          h += '</div>';
+        }
+        h += '<div class="add-sub-subtask-row">';
+        h += '<input type="text" id="ssi-' + s.id + '" placeholder="Add sub-subtask..." onkeydown="if(event.key===\'Enter\')addSubSubtask(' + panel.id + ',' + task.id + ',' + s.id + ')">';
+        h += '<button class="add-sub-subtask-btn" onclick="addSubSubtask(' + panel.id + ',' + task.id + ',' + s.id + ')">+ Sub</button>';
+        h += '</div>';
+      }
     });
     if (!panel.archived && task.showSubs) {
       h += '<div class="add-subtask-row">';
