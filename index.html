@@ -153,7 +153,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .sub-subtask-text.done{text-decoration:line-through;color:#9FE1CB}
 .sub-subtask-del{background:none;border:none;cursor:pointer;color:var(--color-text3);font-size:11px;padding:1px;opacity:0.4}
 .sub-subtask-del:hover{opacity:1;color:#A32D2D}
-.add-sub-subtask-row{display:flex;gap:4px;margin-top:4px}
+.add-sub-subtask-row{display:none;gap:4px;margin-top:4px}
+.add-sub-subtask-row.open{display:flex}
 .add-sub-subtask-row input{flex:1;font-size:11px;padding:3px 6px;border:0.5px solid var(--color-border2);border-radius:var(--radius-md);background:var(--color-surface);color:var(--color-text);min-width:0}
 .add-sub-subtask-btn{font-size:11px;padding:3px 8px;border:none;border-radius:var(--radius-md);background:#5DCAA5;color:#085041;cursor:pointer;font-weight:500;white-space:nowrap}
 .add-sub-subtask-btn:hover{background:#1D9E75;color:#fff}
@@ -942,7 +943,7 @@ function renderFocus() {
     h += '<span class="drag-handle"><i class="ti ti-grip-vertical"></i></span>';
     h += '<div class="focus-sub-check' + (s.done ? ' checked' : '') + '" onclick="focusToggleSub(' + s.id + ')">' + (s.done ? '<i class="ti ti-check"></i>' : '') + '</div>';
     h += '<span class="focus-sub-text subtask-text-editable' + (s.done ? ' done' : '') + '" id="fstext-' + s.id + '" onclick="editFocusSub(' + s.id + ')" title="Click to edit">' + escHtml(s.text) + '</span>';
-    if (hasSubs) h += '<button class="sub-subtask-toggle" onclick="focusToggleSubSubtasksVisibility(' + s.id + ')">' + (showSubs ? 'Hide' : 'Show ' + subItems.length) + '</button>';
+    h += '<button class="sub-subtask-toggle" onclick="' + (hasSubs ? 'focusToggleSubSubtasksVisibility(' + s.id + ')' : 'focusToggleAddSubInput(' + s.id + ')') + '">' + (hasSubs ? (showSubs ? 'Hide sub' : 'Show ' + subItems.length) : '+ Sub') + '</button>';
     h += '<button class="focus-sub-del" onclick="focusDeleteSub(' + s.id + ')"><i class="ti ti-x"></i></button>';
     h += '</div>';
     if (showSubs || !hasSubs) {
@@ -957,7 +958,7 @@ function renderFocus() {
         });
         h += '</div>';
       }
-      h += '<div class="add-sub-subtask-row" style="margin-left:8px">';
+      h += '<div class="add-sub-subtask-row" id="fssrow-' + s.id + '" style="margin-left:8px">';
       h += '<input type="text" id="fssi-' + s.id + '" placeholder="Add sub-subtask..." onkeydown="if(event.key===\'Enter\')focusAddSubSubtask(' + s.id + ')">';
       h += '<button class="add-sub-subtask-btn" onclick="focusAddSubSubtask(' + s.id + ')">+ Sub</button>';
       h += '</div>';
@@ -1029,6 +1030,30 @@ function saveFocusNotes() {
   var panel = state.panels.find(function(p) { return p.id === focusPid; });
   var task = panel ? panel.tasks.find(function(t) { return t.id === focusTid; }) : null;
   if (task) { task.notes = el.value; save(); }
+}
+
+function toggleAddSubInput(sid) {
+  var row = document.getElementById('ssrow-' + sid);
+  if (!row) return;
+  if (row.classList.contains('open')) {
+    row.classList.remove('open');
+  } else {
+    row.classList.add('open');
+    var inp = document.getElementById('ssi-' + sid);
+    if (inp) inp.focus();
+  }
+}
+
+function focusToggleAddSubInput(sid) {
+  var row = document.getElementById('fssrow-' + sid);
+  if (!row) return;
+  if (row.classList.contains('open')) {
+    row.classList.remove('open');
+  } else {
+    row.classList.add('open');
+    var inp = document.getElementById('fssi-' + sid);
+    if (inp) inp.focus();
+  }
 }
 
 function focusToggleSubSubtasksVisibility(sid) {
@@ -1120,7 +1145,7 @@ function renderTask(panel, task) {
       h += '<div class="subtask-check' + (s.done ? ' checked' : '') + '" onclick="toggleSub(' + panel.id + ',' + task.id + ',' + s.id + ')">' + (s.done ? '<i class="ti ti-check"></i>' : '') + '</div>';
       h += '<span class="subtask-text subtask-text-editable' + (s.done ? ' done' : '') + '" id="stext-' + s.id + '" onclick="editSubtask(' + panel.id + ',' + task.id + ',' + s.id + ')" title="Click to edit">' + escHtml(s.text) + '</span>';
       if (!panel.archived) {
-        if (hasSubs) h += '<button class="sub-subtask-toggle" onclick="toggleSubSubtasks(' + panel.id + ',' + task.id + ',' + s.id + ')">' + (showSubs ? 'Hide' : 'Show ' + subItems.length) + '</button>';
+        h += '<button class="sub-subtask-toggle" onclick="' + (hasSubs ? 'toggleSubSubtasks(' + panel.id + ',' + task.id + ',' + s.id + ')' : 'toggleAddSubInput(' + s.id + ')') + '">' + (hasSubs ? (showSubs ? 'Hide sub' : 'Show ' + subItems.length) : '+ Sub') + '</button>';
         h += '<button class="subtask-del" onclick="deleteSub(' + panel.id + ',' + task.id + ',' + s.id + ')"><i class="ti ti-x"></i></button>';
       }
       h += '</div>';
@@ -1136,7 +1161,7 @@ function renderTask(panel, task) {
           });
           h += '</div>';
         }
-        h += '<div class="add-sub-subtask-row">';
+        h += '<div class="add-sub-subtask-row" id="ssrow-' + s.id + '">';
         h += '<input type="text" id="ssi-' + s.id + '" placeholder="Add sub-subtask..." onkeydown="if(event.key===\'Enter\')addSubSubtask(' + panel.id + ',' + task.id + ',' + s.id + ')">';
         h += '<button class="add-sub-subtask-btn" onclick="addSubSubtask(' + panel.id + ',' + task.id + ',' + s.id + ')">+ Sub</button>';
         h += '</div>';
