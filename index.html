@@ -144,8 +144,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .add-subtask-btn{font-size:12px;padding:4px 10px;border:none;border-radius:var(--radius-md);background:#5DCAA5;color:#085041;cursor:pointer;font-weight:500;white-space:nowrap}
 .add-subtask-btn:hover{background:#1D9E75;color:#fff}
 .sub-count{font-size:11px;color:var(--color-text3);margin-top:3px}
-.sub-subtasks{padding:4px 0 4px 22px;display:flex;flex-direction:column;gap:3px;border-top:0.5px dashed var(--color-border)}
-.sub-subtask-row{display:flex;align-items:center;gap:6px;padding:4px 6px;background:var(--color-bg);border-radius:var(--radius-md);border:0.5px solid var(--color-border)}
+.sub-subtasks{padding:2px 0 2px 22px;display:flex;flex-direction:column;gap:2px;border-top:0.5px dashed var(--color-border)}
+.sub-subtask-row{display:flex;align-items:center;gap:5px;padding:2px 6px;background:var(--color-bg);border-radius:var(--radius-md);border:0.5px solid var(--color-border)}
 .sub-subtask-check{width:12px;height:12px;border-radius:2px;border:1.5px solid var(--color-border2);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:8px;background:var(--color-surface)}
 .sub-subtask-check.checked{background:#5DCAA5;border-color:#5DCAA5;color:#fff}
 .sub-subtask-text{flex:1;font-size:12px;color:var(--color-text3);word-break:break-word;cursor:pointer;border-radius:3px;padding:1px 3px}
@@ -153,7 +153,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .sub-subtask-text.done{text-decoration:line-through;color:#9FE1CB}
 .sub-subtask-del{background:none;border:none;cursor:pointer;color:var(--color-text3);font-size:11px;padding:1px;opacity:0.4}
 .sub-subtask-del:hover{opacity:1;color:#A32D2D}
-.add-sub-subtask-row{display:none;gap:4px;margin-top:4px}
+.add-sub-subtask-row{display:none;gap:4px;margin-top:2px}
 .add-sub-subtask-row.open{display:flex}
 .add-sub-subtask-row input{flex:1;font-size:11px;padding:3px 6px;border:0.5px solid var(--color-border2);border-radius:var(--radius-md);background:var(--color-surface);color:var(--color-text);min-width:0}
 .add-sub-subtask-btn{font-size:11px;padding:3px 8px;border:none;border-radius:var(--radius-md);background:#5DCAA5;color:#085041;cursor:pointer;font-weight:500;white-space:nowrap}
@@ -678,8 +678,12 @@ function addSubSubtask(pid, tid, sid) {
   if (!s) return;
   if (!s.subItems) s.subItems = [];
   s.subItems.push({id: state.nextId++, text: text, done: false});
+  s.showSubs = true;
   inp.value = ''; save(); renderTasksOnly(pid);
   if (focusTid === tid) renderFocus();
+  // Re-open the input row after render
+  var row = document.getElementById('ssrow-' + sid);
+  if (row) row.classList.add('open');
   var inp2 = document.getElementById('ssi-' + sid); if (inp2) inp2.focus();
 }
 
@@ -751,8 +755,14 @@ function focusAddSubSubtask(sid) {
   var s = task.subtasks.find(function(s) { return s.id === sid; });
   if (!s.subItems) s.subItems = [];
   s.subItems.push({id: state.nextId++, text: text, done: false});
+  s.showSubs = true;
   inp.value = ''; save(); renderTasksOnly(focusPid); renderFocus();
-  setTimeout(function() { var i = document.getElementById('fssi-' + sid); if (i) i.focus(); }, 50);
+  // Re-open the input row after render
+  setTimeout(function() {
+    var row = document.getElementById('fssrow-' + sid);
+    if (row) row.classList.add('open');
+    var i = document.getElementById('fssi-' + sid); if (i) i.focus();
+  }, 50);
 }
 
 function focusEditSubSubtask(sid, ssid) {
