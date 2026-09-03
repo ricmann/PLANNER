@@ -156,8 +156,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .sub-subtask-text.done{text-decoration:line-through;color:#9FE1CB}
 .sub-subtask-del{background:none;border:none;cursor:pointer;color:var(--color-text3);font-size:11px;padding:1px;opacity:0.4}
 .sub-subtask-del:hover{opacity:1;color:#A32D2D}
-.add-sub-subtask-row{display:none;gap:4px;margin-top:2px;margin-bottom:4px;padding-left:22px}
+.add-sub-subtask-row{display:none;gap:4px;margin-top:2px;margin-bottom:4px;padding-left:22px;align-items:center}
 .add-sub-subtask-row.open{display:flex}
+.sub-input-close{background:none;border:none;cursor:pointer;color:var(--color-text3);font-size:15px;padding:2px 4px;line-height:1;flex-shrink:0;opacity:0.6;border-radius:4px}
+.sub-input-close:hover{opacity:1;color:#A32D2D}
 .add-sub-subtask-row input{flex:1;font-size:11px;padding:3px 6px;border:0.5px solid var(--color-border2);border-radius:var(--radius-md);background:var(--color-surface);color:var(--color-text);min-width:0}
 .add-sub-subtask-btn{font-size:11px;padding:3px 8px;border:none;border-radius:var(--radius-md);background:#5DCAA5;color:#085041;cursor:pointer;font-weight:500;white-space:nowrap}
 .add-sub-subtask-btn:hover{background:#1D9E75;color:#fff}
@@ -825,6 +827,28 @@ function focusToggleAllItems() {
   save(); renderTasksOnly(focusPid); renderFocus();
 }
 
+function forceCloseSubInput(pid, tid, sid) {
+  var panel = state.panels.find(function(p) { return p.id === pid; });
+  if (!panel) return;
+  var t = panel.tasks.find(function(t) { return t.id === tid; });
+  if (!t) return;
+  var s = t.subtasks.find(function(s) { return s.id === sid; });
+  if (!s) return;
+  s.inputOpen = false;
+  save(); renderTasksOnly(pid);
+  if (focusTid === tid) renderFocus();
+}
+
+function forceFocusCloseSubInput(sid) {
+  var panel = state.panels.find(function(p) { return p.id === focusPid; });
+  var task = panel ? panel.tasks.find(function(t) { return t.id === focusTid; }) : null;
+  if (!task) return;
+  var s = task.subtasks.find(function(s) { return s.id === sid; });
+  if (!s) return;
+  s.inputOpen = false;
+  save(); renderTasksOnly(focusPid); renderFocus();
+}
+
 function closeEmptySubInput(pid, tid, sid) {
   var inp = document.getElementById('ssi-' + sid);
   if (inp && inp.value.trim() === '') {
@@ -1022,7 +1046,12 @@ function renderFocus() {
     h += '<button class="focus-sub-del" onclick="focusDeleteSub(' + s.id + ')"><i class="ti ti-x"></i></button>';
     h += '</div>';
     if (showSubs || !hasSubs) {
-
+      if (s.inputOpen) {
+        h += '<div class="add-sub-subtask-row open" id="fssrow-' + s.id + '" style="margin-left:22px">';
+        h += '<input type="text" id="fssi-' + s.id + '" placeholder="Add Item..." onkeydown="if(event.key===\\\'Enter\\\')focusAddSubSubtask(' + s.id + ')" onblur="closeFocusEmptySubInput(' + s.id + ')">';
+        h += '<button class="sub-input-close" onmousedown="forceFocusCloseSubInput(' + s.id + ')" title="Close">&times;</button>';
+        h += '</div>';
+      }
       if (hasSubs) {
         h += '<div class="sub-subtasks" style="margin-left:8px">';
         subItems.forEach(function(ss) {
@@ -1253,6 +1282,7 @@ function renderTask(panel, task) {
         if (s.inputOpen) {
           h += '<div class="add-sub-subtask-row' + (s.inputOpen ? ' open' : '') + '" id="ssrow-' + s.id + '">';
           h += '<input type="text" id="ssi-' + s.id + '" placeholder="Add Item..." onkeydown="if(event.key===\'Enter\')addSubSubtask(' + panel.id + ',' + task.id + ',' + s.id + ')">';
+          h += '<button class="sub-input-close" onmousedown="forceCloseSubInput(' + panel.id + ',' + task.id + ',' + s.id + ')" title="Close">&times;</button>';
           h += '</div>';
         }
         if (hasSubs && showSubs) {
