@@ -825,6 +825,34 @@ function focusToggleAllItems() {
   save(); renderTasksOnly(focusPid); renderFocus();
 }
 
+function closeEmptySubInput(pid, tid, sid) {
+  var inp = document.getElementById('ssi-' + sid);
+  if (inp && inp.value.trim() === '') {
+    var panel = state.panels.find(function(p) { return p.id === pid; });
+    if (!panel) return;
+    var t = panel.tasks.find(function(t) { return t.id === tid; });
+    if (!t) return;
+    var s = t.subtasks.find(function(s) { return s.id === sid; });
+    if (!s) return;
+    s.inputOpen = false;
+    save(); renderTasksOnly(pid);
+    if (focusTid === tid) renderFocus();
+  }
+}
+
+function closeFocusEmptySubInput(sid) {
+  var inp = document.getElementById('fssi-' + sid);
+  if (inp && inp.value.trim() === '') {
+    var panel = state.panels.find(function(p) { return p.id === focusPid; });
+    var task = panel ? panel.tasks.find(function(t) { return t.id === focusTid; }) : null;
+    if (!task) return;
+    var s = task.subtasks.find(function(s) { return s.id === sid; });
+    if (!s) return;
+    s.inputOpen = false;
+    save(); renderTasksOnly(focusPid); renderFocus();
+  }
+}
+
 function togglePanel(pid) {
   var p = state.panels.find(function(p) { return p.id === pid; });
   p.collapsed = !p.collapsed; save(); render();
