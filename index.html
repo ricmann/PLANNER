@@ -144,6 +144,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .add-subtask-btn{font-size:12px;padding:4px 10px;border:none;border-radius:var(--radius-md);background:#185FA5;color:#fff;cursor:pointer;font-weight:500;white-space:nowrap}
 .add-subtask-btn:hover{background:#0C447C;color:#fff}
 .sub-count{font-size:11px;color:var(--color-text3);margin-top:3px}
+.items-toggle-row{display:flex;justify-content:flex-end;margin-top:6px}
+.items-toggle-btn{font-size:11px;padding:3px 10px;border:0.5px solid var(--color-border2);border-radius:var(--radius-md);background:var(--color-bg2);color:var(--color-text2);cursor:pointer;white-space:nowrap}
+.items-toggle-btn:hover{background:var(--color-bg3)}
 .sub-subtasks{padding:2px 0 2px 22px;display:flex;flex-direction:column;gap:2px;border-top:0.5px dashed var(--color-border)}
 .sub-subtask-row{display:flex;align-items:center;gap:5px;padding:2px 6px;background:var(--color-bg);border-radius:var(--radius-md);border:0.5px solid var(--color-border)}
 .sub-subtask-check{width:12px;height:12px;border-radius:2px;border:1.5px solid var(--color-border2);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:8px;background:var(--color-surface)}
@@ -787,6 +790,41 @@ function focusEditSubSubtask(sid, ssid) {
   span.replaceWith(inp); inp.focus(); inp.select();
 }
 
+function toggleAllItems(pid, tid) {
+  var panel = state.panels.find(function(p) { return p.id === pid; });
+  if (!panel) return;
+  var task = panel.tasks.find(function(t) { return t.id === tid; });
+  if (!task) return;
+  // Check if any items are currently visible
+  var anyVisible = task.subtasks.some(function(s) {
+    return s.subItems && s.subItems.length > 0 && s.showSubs !== false;
+  });
+  // Toggle all: if any visible, hide all; if all hidden, show all
+  task.subtasks.forEach(function(s) {
+    if (s.subItems && s.subItems.length > 0) {
+      s.showSubs = !anyVisible;
+    }
+  });
+  save(); renderTasksOnly(pid);
+  if (focusTid === tid) renderFocus();
+}
+
+function focusToggleAllItems() {
+  var panel = state.panels.find(function(p) { return p.id === focusPid; });
+  if (!panel) return;
+  var task = panel.tasks.find(function(t) { return t.id === focusTid; });
+  if (!task) return;
+  var anyVisible = task.subtasks.some(function(s) {
+    return s.subItems && s.subItems.length > 0 && s.showSubs !== false;
+  });
+  task.subtasks.forEach(function(s) {
+    if (s.subItems && s.subItems.length > 0) {
+      s.showSubs = !anyVisible;
+    }
+  });
+  save(); renderTasksOnly(focusPid); renderFocus();
+}
+
 function togglePanel(pid) {
   var p = state.panels.find(function(p) { return p.id === pid; });
   p.collapsed = !p.collapsed; save(); render();
@@ -973,6 +1011,14 @@ function renderFocus() {
   });
   h += '</div>';
   h += '</div>';
+  // Add Hide/Show Items button in focus panel
+  var hasAnyFocusItems = subs.some(function(s) { return s.subItems && s.subItems.length > 0; });
+  if (hasAnyFocusItems) {
+    var anyFocusItemsVisible = subs.some(function(s) { return s.subItems && s.subItems.length > 0 && s.showSubs !== false; });
+    h += '<div class="items-toggle-row">';
+    h += '<button class="items-toggle-btn" onclick="focusToggleAllItems()">' + (anyFocusItemsVisible ? 'Hide Items' : 'Show Items') + '</button>';
+    h += '</div>';
+  }
   h += '<div><div class="focus-notes-label">Notes <button class="focus-notes-copy" onclick="copyNotes()"><i class="ti ti-copy" style="font-size:11px"></i> Copy</button></div>';
   h += '<textarea class="focus-notes-area" id="focus-notes" placeholder="Notes, links, text to copy across devices..." onchange="saveFocusNotes()">' + escHtml(task.notes || '') + '</textarea></div>';
   body.innerHTML = h;
@@ -1185,6 +1231,14 @@ function renderTask(panel, task) {
       }
     });
     if (hasSubs) h += '<div class="sub-count">' + subDone + ' of ' + subs.length + ' subtasks complete</div>';
+    h += '</div>';
+  }
+  // Add Hide/Show Items button if any subtask has items
+  var hasAnyItems = subs.some(function(s) { return s.subItems && s.subItems.length > 0; });
+  if (hasAnyItems && !panel.archived) {
+    var anyItemsVisible = subs.some(function(s) { return s.subItems && s.subItems.length > 0 && s.showSubs !== false; });
+    h += '<div class="items-toggle-row">';
+    h += '<button class="items-toggle-btn" onclick="toggleAllItems(' + panel.id + ',' + task.id + ')">' + (anyItemsVisible ? 'Hide Items' : 'Show Items') + '</button>';
     h += '</div>';
   }
   h += '</div>';
