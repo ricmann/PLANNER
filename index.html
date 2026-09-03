@@ -1120,6 +1120,17 @@ function toggleAddSubInput(pid, tid, sid) {
   if (!t) return;
   var s = t.subtasks.find(function(s) { return s.id === sid; });
   if (!s) return;
+  // Close any other open empty item inputs first
+  state.panels.forEach(function(panel2) {
+    panel2.tasks.forEach(function(task2) {
+      task2.subtasks.forEach(function(sub2) {
+        if (sub2.id !== sid && sub2.inputOpen) {
+          var otherInp = document.getElementById('ssi-' + sub2.id);
+          if (!otherInp || otherInp.value.trim() === '') sub2.inputOpen = false;
+        }
+      });
+    });
+  });
   s.inputOpen = !s.inputOpen;
   save(); renderTasksOnly(pid);
   if (focusTid === tid) renderFocus();
@@ -1335,6 +1346,48 @@ if ('serviceWorker' in navigator) {
 updateTitleDate();
 load();
 render();
+
+// Close empty item inputs when tapping/clicking elsewhere on mobile
+document.addEventListener('touchstart', function(e) {
+  state.panels.forEach(function(panel) {
+    panel.tasks.forEach(function(task) {
+      task.subtasks.forEach(function(s) {
+        if (s.inputOpen) {
+          var inp = document.getElementById('ssi-' + s.id);
+          var row = document.getElementById('ssrow-' + s.id);
+          if (row && !row.contains(e.target) && (!inp || inp.value.trim() === '')) {
+            s.inputOpen = false;
+          }
+        }
+      });
+    });
+  });
+  // Check focus panel too
+  if (focusPid && focusTid) {
+    var panel = state.panels.find(function(p) { return p.id === focusPid; });
+    var task = panel ? panel.tasks.find(function(t) { return t.id === focusTid; }) : null;
+    if (task) {
+      var changed = false;
+      task.subtasks.forEach(function(s) {
+        if (s.inputOpen) {
+          var row = document.getElementById('fssrow-' + s.id);
+          var inp = document.getElementById('fssi-' + s.id);
+          if (row && !row.contains(e.target) && (!inp || inp.value.trim() === '')) {
+            s.inputOpen = false;
+            changed = true;
+          }
+        }
+      });
+      if (changed) { save(); renderTasksOnly(focusPid); renderFocus(); }
+    }
+  }
+  // Re-render if any changed
+  var anyChanged = state.panels.some(function(panel) {
+    return panel.tasks.some(function(task) {
+      return task.subtasks.some(function(s) { return !s.inputOpen; });
+    });
+  });
+}, {passive: true});
 pullFromSheets().then(function(loaded) {
   if (!loaded && state.panels.length === 0) newPage();
   if (state.panels.some(function(p) { return p.tasks.length > 0; })) setTimeout(function() { autoExport(); }, 2000);
