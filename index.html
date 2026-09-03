@@ -1238,8 +1238,8 @@ function renderTask(panel, task) {
         h += '<button class="subtask-del" onclick="deleteSub(' + panel.id + ',' + task.id + ',' + s.id + ')"><i class="ti ti-x"></i></button>';
       }
       h += '</div>';
-      if (!panel.archived && (showSubs || !hasSubs)) {
-        if (showSubs || !hasSubs) {
+      if (!panel.archived && (s.inputOpen || hasSubs)) {
+        if (s.inputOpen) {
           h += '<div class="add-sub-subtask-row' + (s.inputOpen ? ' open' : '') + '" id="ssrow-' + s.id + '">';
           h += '<input type="text" id="ssi-' + s.id + '" placeholder="Add Item..." onkeydown="if(event.key===\'Enter\')addSubSubtask(' + panel.id + ',' + task.id + ',' + s.id + ')">';
           h += '</div>';
