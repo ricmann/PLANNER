@@ -877,6 +877,46 @@ function closeFocusEmptySubInput(sid) {
   }
 }
 
+var itemDragSrc = null;
+var itemDragSid = null;
+
+function itemDragStart(e, idx, sid) {
+  itemDragSrc = idx;
+  itemDragSid = sid;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function itemDragOver(e, idx) {
+  e.preventDefault();
+  document.querySelectorAll('.sub-subtask-row').forEach(function(el, i) {
+    el.classList.toggle('drag-over', i === idx && i !== itemDragSrc);
+  });
+}
+
+function itemDrop(e, idx, sid) {
+  e.preventDefault();
+  if (itemDragSrc === null || itemDragSrc === idx) return;
+  var panel = state.panels.find(function(p) { return p.id === focusPid; });
+  var task = panel ? panel.tasks.find(function(t) { return t.id === focusTid; }) : null;
+  if (!task) return;
+  var s = task.subtasks.find(function(s) { return s.id === sid; });
+  if (!s || !s.subItems) return;
+  var items = s.subItems.slice();
+  var moved = items.splice(itemDragSrc, 1)[0];
+  items.splice(idx, 0, moved);
+  s.subItems = items;
+  save(); renderTasksOnly(focusPid); renderFocus();
+  itemDragSrc = null; itemDragSid = null;
+}
+
+function itemDragEnd() {
+  itemDragSrc = null; itemDragSid = null;
+  document.querySelectorAll('.sub-subtask-row').forEach(function(el) {
+    el.classList.remove('dragging', 'drag-over');
+  });
+}
+
 function togglePanel(pid) {
   var p = state.panels.find(function(p) { return p.id === pid; });
   p.collapsed = !p.collapsed; save(); render();
@@ -1042,7 +1082,8 @@ function renderFocus() {
     h += '<span class="drag-handle"><i class="ti ti-grip-vertical"></i></span>';
     h += '<div class="focus-sub-check' + (s.done ? ' checked' : '') + '" onclick="focusToggleSub(' + s.id + ')">' + (s.done ? '<i class="ti ti-check"></i>' : '') + '</div>';
     h += '<span class="focus-sub-text subtask-text-editable' + (s.done ? ' done' : '') + '" id="fstext-' + s.id + '" onclick="editFocusSub(' + s.id + ')" title="Click to edit">' + escHtml(s.text) + '</span>';
-    h += '<button class="sub-subtask-toggle" onclick="' + (hasSubs ? 'focusToggleSubSubtasksVisibility(' + s.id + ')' : 'focusToggleAddSubInput(' + s.id + ')') + '">' + (hasSubs ? (showSubs ? 'Hide' : 'Items ' + subItems.length) : '+') + '</button>';
+    h += '<button class="sub-subtask-toggle" onclick="focusToggleAddSubInput(' + s.id + ')" title="Add Item">+</button>';
+    if (hasSubs) h += '<button class="sub-subtask-toggle" onclick="focusToggleSubSubtasksVisibility(' + s.id + ')">' + (showSubs ? 'Hide' : 'Items ' + subItems.length) + '</button>';
     h += '<button class="focus-sub-del" onclick="focusDeleteSub(' + s.id + ')"><i class="ti ti-x"></i></button>';
     h += '</div>';
     if (showSubs || !hasSubs) {
@@ -1054,8 +1095,9 @@ function renderFocus() {
       }
       if (hasSubs) {
         h += '<div class="sub-subtasks" style="margin-left:8px">';
-        subItems.forEach(function(ss) {
-          h += '<div class="sub-subtask-row">';
+        subItems.forEach(function(ss, si) {
+          h += '<div class="sub-subtask-row" draggable="true" ondragstart="itemDragStart(event,' + si + ',' + s.id + ')" ondragover="itemDragOver(event,' + si + ')" ondrop="itemDrop(event,' + si + ',' + s.id + ')" ondragend="itemDragEnd()">';
+          h += '<span class="drag-handle" style="font-size:12px"><i class="ti ti-grip-vertical"></i></span>';
           h += '<div class="sub-subtask-check' + (ss.done ? ' checked' : '') + '" onclick="focusToggleSubSubtask(' + s.id + ',' + ss.id + ')">' + (ss.done ? '<i class="ti ti-check"></i>' : '') + '</div>';
           h += '<span class="sub-subtask-text' + (ss.done ? ' done' : '') + '" id="fsstext-' + ss.id + '" onclick="focusEditSubSubtask(' + s.id + ',' + ss.id + ')" title="Click to edit">' + escHtml(ss.text) + '</span>';
           h += '<button class="sub-subtask-del" onclick="focusDeleteSubSubtask(' + s.id + ',' + ss.id + ')"><i class="ti ti-x"></i></button>';
@@ -1274,7 +1316,8 @@ function renderTask(panel, task) {
       h += '<div class="subtask-check' + (s.done ? ' checked' : '') + '" onclick="toggleSub(' + panel.id + ',' + task.id + ',' + s.id + ')">' + (s.done ? '<i class="ti ti-check"></i>' : '') + '</div>';
       h += '<span class="subtask-text subtask-text-editable' + (s.done ? ' done' : '') + '" id="stext-' + s.id + '" onclick="editSubtask(' + panel.id + ',' + task.id + ',' + s.id + ')" title="Click to edit">' + escHtml(s.text) + '</span>';
       if (!panel.archived) {
-        h += '<button class="sub-subtask-toggle" onclick="' + (hasSubs ? 'toggleSubSubtasks(' + panel.id + ',' + task.id + ',' + s.id + ')' : 'toggleAddSubInput(' + panel.id + ',' + task.id + ',' + s.id + ')') + '">' + (hasSubs ? (showSubs ? 'Hide' : 'Items ' + subItems.length) : '+') + '</button>';
+        h += '<button class="sub-subtask-toggle" onclick="toggleAddSubInput(' + panel.id + ',' + task.id + ',' + s.id + ')" title="Add Item">+</button>';
+        if (hasSubs) h += '<button class="sub-subtask-toggle" onclick="toggleSubSubtasks(' + panel.id + ',' + task.id + ',' + s.id + ')">' + (showSubs ? 'Hide' : 'Items ' + subItems.length) + '</button>';
         h += '<button class="subtask-del" onclick="deleteSub(' + panel.id + ',' + task.id + ',' + s.id + ')"><i class="ti ti-x"></i></button>';
       }
       h += '</div>';
@@ -1287,7 +1330,7 @@ function renderTask(panel, task) {
         }
         if (hasSubs && showSubs) {
           h += '<div class="sub-subtasks">';
-          subItems.forEach(function(ss) {
+          subItems.forEach(function(ss, si) {
             h += '<div class="sub-subtask-row">';
             h += '<div class="sub-subtask-check' + (ss.done ? ' checked' : '') + '" onclick="toggleSubSubtask(' + panel.id + ',' + task.id + ',' + s.id + ',' + ss.id + ')">' + (ss.done ? '<i class="ti ti-check"></i>' : '') + '</div>';
             h += '<span class="sub-subtask-text' + (ss.done ? ' done' : '') + '" id="sstext-' + ss.id + '" onclick="editSubSubtask(' + panel.id + ',' + task.id + ',' + s.id + ',' + ss.id + ')" title="Click to edit">' + escHtml(ss.text) + '</span>';
