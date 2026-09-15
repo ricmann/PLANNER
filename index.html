@@ -106,6 +106,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .cat-pill{font-size:11px;padding:3px 8px;border-radius:var(--radius-md);font-weight:500;flex-shrink:0;white-space:nowrap;cursor:pointer;border:0.5px solid transparent;transition:filter 0.15s}
 .cat-pill:hover{filter:brightness(0.88)}
 .task-edit-btn{background:none;border:none;cursor:pointer;color:var(--color-text3);font-size:14px;padding:3px;line-height:1;flex-shrink:0;opacity:0.55;border-radius:4px}
+.add-sub-btn{font-size:11px;padding:2px 7px;border:0.5px solid var(--color-border2);border-radius:var(--radius-md);background:var(--color-bg2);color:var(--color-text2);cursor:pointer;white-space:nowrap;flex-shrink:0;font-weight:500}
 .task-edit-btn:hover{opacity:1;color:var(--color-accent)}
 .sub-toggle-btn{display:flex;align-items:center;font-size:11px;font-weight:600;padding:3px 8px;border-radius:var(--radius-md);border:0.5px solid #6A9FD8;background:#C8DFF5;color:#0C447C;cursor:pointer;white-space:nowrap;flex-shrink:0}
 .sub-toggle-btn:hover{background:#A8C8EC}
@@ -163,7 +164,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .add-sub-subtask-row input{flex:1;font-size:11px;padding:3px 6px;border:0.5px solid var(--color-border2);border-radius:var(--radius-md);background:var(--color-surface);color:var(--color-text);min-width:0}
 .add-sub-subtask-btn{font-size:11px;padding:3px 8px;border:none;border-radius:var(--radius-md);background:#5DCAA5;color:#085041;cursor:pointer;font-weight:500;white-space:nowrap}
 .add-sub-subtask-btn:hover{background:#1D9E75;color:#fff}
-.sub-subtask-toggle{font-size:12px;padding:3px 10px;border:0.5px solid var(--color-border2);border-radius:var(--radius-md);background:var(--color-bg2);color:var(--color-text2);cursor:pointer;white-space:nowrap;flex-shrink:0;font-weight:500;min-width:28px;text-align:center}
+.sub-subtask-toggle{font-size:11px;padding:2px 7px;border:0.5px solid var(--color-border2);border-radius:var(--radius-md);background:var(--color-bg2);color:var(--color-text2);cursor:pointer;white-space:nowrap;flex-shrink:0;font-weight:500;min-width:24px;text-align:center}
 .sub-subtask-toggle:hover{background:var(--color-bg3)}
 .subtask-edit-input{flex:1;font-size:13px;padding:2px 6px;border:0.5px solid var(--color-accent);border-radius:var(--radius-md);background:var(--color-surface);color:var(--color-text);outline:none;min-width:0}
 .sub-subtask-edit-input{flex:1;font-size:12px;padding:2px 5px;border:0.5px solid var(--color-accent);border-radius:var(--radius-md);background:var(--color-surface);color:var(--color-text);outline:none;min-width:0}
@@ -917,6 +918,22 @@ function itemDragEnd() {
   });
 }
 
+function focusSubInput(pid, tid) {
+  var panel = state.panels.find(function(p) { return p.id === pid; });
+  var task = panel ? panel.tasks.find(function(t) { return t.id === tid; }) : null;
+  if (task && !task.showSubs) {
+    task.showSubs = true;
+    save(); renderTasksOnly(pid);
+  }
+  setTimeout(function() {
+    var inp = document.getElementById('si-' + tid);
+    if (inp) {
+      inp.focus();
+      inp.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+    }
+  }, 50);
+}
+
 function togglePanel(pid) {
   var p = state.panels.find(function(p) { return p.id === pid; });
   p.collapsed = !p.collapsed; save(); render();
@@ -1285,6 +1302,7 @@ function renderTask(panel, task) {
   if (!panel.archived) {
     h += '<span class="cat-pill" style="background:' + cs.bg + ';color:' + cs.text + ';border-color:' + cs.border + '" onclick="clickCatPill(\'' + task.catId + '\',event)">' + cs.name + '</span>';
     h += '<button class="task-edit-btn" onclick="openEditPopup(' + panel.id + ',' + task.id + ')" title="Edit"><i class="ti ti-pencil"></i></button>';
+    h += '<button class="add-sub-btn" onclick="focusSubInput(' + panel.id + ',' + task.id + ')" title="Add Sub">+ Sub</button>';
 
     h += '<button class="del-btn" onclick="deleteTask(' + panel.id + ',' + task.id + ')"><i class="ti ti-trash"></i></button>';
   } else {
